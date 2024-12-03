@@ -11,9 +11,9 @@ import static java.util.Objects.isNull;
 @Getter
 public class ChatException extends RuntimeException {
 
-    private final List<ChatErrorDTO> errors;
+    private final Collection<ChatErrorDTO> errors;
 
-    public ChatException(final List<ChatErrorDTO> errors) {
+    public ChatException(final Collection<ChatErrorDTO> errors) {
         super();
         Objects.requireNonNull(errors);
         if (errors.isEmpty()) {
