@@ -21,7 +21,7 @@ public class ChatExceptionHandler implements ExceptionMapper<ChatException> {
     public Response toResponse(final ChatException exception) {
         return Response.status(Response.Status.BAD_REQUEST)
                 .entity(ChatErrorListDTO.builder()
-                        .errors(exception.getErrors())
+                        .errors(exception.getErrors().stream().toList())
                         .build())
                 .build();
     }
