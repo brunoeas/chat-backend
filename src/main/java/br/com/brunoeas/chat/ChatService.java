@@ -36,29 +36,23 @@ public class ChatService {
         message.setUsername(message.getUsername().trim());
         message.setText(message.getText().trim());
 
-        final SetCommands<String, UserDTO> setCommand = this.redisDataSource.set(UserDTO.class);
-        final Set<UserDTO> users = setCommand.smembers(this.usersKey);
-        final UserDTO user = users.stream()
-                .filter(userStream -> message.getUsername().equalsIgnoreCase(userStream.getName()))
-                .findFirst()
-                .orElseGet(() -> {
-                    final UserDTO newUser = UserDTO.builder().code(UUID.randomUUID()).name(message.getUsername()).build();
-                    setCommand.sadd(this.usersKey, newUser);
-                    return newUser;
-                });
+        final UserDTO user = this.retrieveUserOrCreateNewOne(message.getUsername());
 
         final MessageDTO messageDTO = MessageDTO.builder()
                 .username(user.getCode().toString())
                 .timestamp(LocalDateTime.now())
                 .text(message.getText())
                 .build();
-        this.redisDataSource.list(MessageDTO.class).lpush(this.chatMessagesKey, messageDTO);
+        this.redisDataSource.list(MessageDTO.class).rpush(this.chatMessagesKey, messageDTO);
     }
 
-    public PageDTO<MessageDTO> listMessagesWithPagination(final ListMessagesWithPaginationDTO request) {
-        final ListCommands<String, MessageDTO> listCommand = this.redisDataSource.list(MessageDTO.class);
+    public PageDTO<MessageDTO> listMessagesWithPagination(final ListMessagesWithPaginationDTO request) throws ChatException {
+        BeanValidator.validate(request);
 
-        final List<MessageDTO> rawMessages = listCommand.lrange(this.chatMessagesKey, request.getPageIndex(), request.getPageSize());
+        final ListCommands<String, MessageDTO> listCommand = this.redisDataSource.list(MessageDTO.class);
+        final long total = listCommand.llen(this.chatMessagesKey);
+
+        final List<MessageDTO> rawMessages = listCommand.lrange(this.chatMessagesKey, total - request.getPageSize(), -1);
         final Set<UserDTO> users = this.redisDataSource.set(UserDTO.class).smembers(this.usersKey);
 
         final LinkedList<MessageDTO> messageList = rawMessages.stream()
@@ -66,9 +60,26 @@ public class ChatService {
                 .collect(Collectors.toCollection(LinkedList::new));
 
         return PageDTO.<MessageDTO>builder()
-                .total(listCommand.llen(this.chatMessagesKey))
+                .total(total)
                 .list(messageList)
                 .build();
+    }
+
+    private UserDTO retrieveUserOrCreateNewOne(final String username) {
+        final SetCommands<String, UserDTO> setCommands = this.redisDataSource.set(UserDTO.class);
+
+        return setCommands.smembers(this.usersKey)
+                .stream()
+                .filter(userStream -> username.equalsIgnoreCase(userStream.getName()))
+                .findFirst()
+                .orElseGet(() -> {
+                    final UserDTO newUser = UserDTO.builder()
+                            .code(UUID.randomUUID())
+                            .name(username)
+                            .build();
+                    setCommands.sadd(this.usersKey, newUser);
+                    return newUser;
+                });
     }
 
     private MessageDTO mapUserNameInDTO(final MessageDTO messageDTO, final Collection<UserDTO> users) {

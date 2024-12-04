@@ -2,7 +2,6 @@ package br.com.brunoeas.chat.dtos;
 
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
-import jakarta.validation.constraints.PositiveOrZero;
 import jakarta.ws.rs.DefaultValue;
 import jakarta.ws.rs.QueryParam;
 import lombok.AllArgsConstructor;
@@ -19,13 +18,6 @@ import java.io.Serializable;
 @Builder
 @FieldNameConstants
 public class ListMessagesWithPaginationDTO implements Serializable {
-
-    @PositiveOrZero(message = "REQUIRED_FIELD")
-    @NotNull(message = "REQUIRED_FIELD")
-    @Builder.Default
-    @DefaultValue("0")
-    @QueryParam(Fields.pageIndex)
-    private Long pageIndex = 0L;
 
     @Positive(message = "REQUIRED_FIELD")
     @NotNull(message = "REQUIRED_FIELD")
