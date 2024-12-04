@@ -17,7 +17,7 @@ public class ChatException extends RuntimeException {
         super();
         Objects.requireNonNull(errors);
         if (errors.isEmpty()) {
-            throw new IllegalArgumentException("Field \"errorMessageEnumMap\" is empty.");
+            throw new IllegalArgumentException("Field \"errors\" is empty.");
         }
         this.errors = errors;
     }
