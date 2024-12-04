@@ -13,11 +13,7 @@ import org.eclipse.microprofile.config.inject.ConfigProperty;
 
 import java.time.LocalDateTime;
 import java.util.*;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 import java.util.stream.Collectors;
-
-import static java.util.Objects.isNull;
 
 @JBossLog
 @ApplicationScoped
@@ -51,17 +47,22 @@ public class ChatService {
                     return newUser;
                 });
 
-        final String formattedMessage = String.format("{%s}:{%s}:%s", user.getCode(), LocalDateTime.now(), message.getText());
-        this.redisDataSource.list(String.class).lpush(this.chatMessagesKey, formattedMessage);
+        final MessageDTO messageDTO = MessageDTO.builder()
+                .username(user.getCode().toString())
+                .timestamp(LocalDateTime.now())
+                .text(message.getText())
+                .build();
+        this.redisDataSource.list(MessageDTO.class).lpush(this.chatMessagesKey, messageDTO);
     }
 
     public PageDTO<MessageDTO> listMessagesWithPagination(final ListMessagesWithPaginationDTO request) {
-        final ListCommands<String, String> listCommand = this.redisDataSource.list(String.class);
+        final ListCommands<String, MessageDTO> listCommand = this.redisDataSource.list(MessageDTO.class);
 
-        final List<String> rawMessages = listCommand.lrange(this.chatMessagesKey, request.getPageIndex(), request.getPageSize());
+        final List<MessageDTO> rawMessages = listCommand.lrange(this.chatMessagesKey, request.getPageIndex(), request.getPageSize());
+        final Set<UserDTO> users = this.redisDataSource.set(UserDTO.class).smembers(this.usersKey);
 
         final LinkedList<MessageDTO> messageList = rawMessages.stream()
-                .map(this::mapRawMessageToDTO)
+                .map(raw -> this.mapUserNameInDTO(raw, users))
                 .collect(Collectors.toCollection(LinkedList::new));
 
         return PageDTO.<MessageDTO>builder()
@@ -70,35 +71,13 @@ public class ChatService {
                 .build();
     }
 
-    private MessageDTO mapRawMessageToDTO(final String raw) {
-        final Pattern pattern = Pattern.compile("\\{(.*?)}");
-        final Matcher matcher = pattern.matcher(raw);
-
-        String username = null;
-        String uuidUser = null;
-        if (matcher.find()) {
-            uuidUser = matcher.group(1);
-            final String uuidUserFinal = uuidUser;
-            final Set<UserDTO> users = this.redisDataSource.set(UserDTO.class).smembers(this.usersKey);
-            final UserDTO user = users.stream()
-                    .filter(u -> Objects.equals(u.getCode().toString(), uuidUserFinal))
-                    .findFirst()
-                    .orElse(UserDTO.builder().name("UNKNOWN").build());
-            username = user.getName();
-        }
-
-        String timestamp = null;
-        if (matcher.find()) {
-            timestamp = matcher.group(1);
-        }
-
-        final String text = raw.split(String.format("{%s}:{%s}:", uuidUser, timestamp))[0];
-
-        return MessageDTO.builder()
-                .username(username)
-                .timestamp(isNull(timestamp) ? null : LocalDateTime.parse(timestamp))
-                .text(text)
-                .build();
+    private MessageDTO mapUserNameInDTO(final MessageDTO messageDTO, final Collection<UserDTO> users) {
+        final UserDTO user = users.stream()
+                .filter(u -> Objects.equals(u.getCode().toString(), messageDTO.getUsername()))
+                .findFirst()
+                .orElse(UserDTO.builder().name("UNKNOWN").build());
+        messageDTO.setUsername(user.getName());
+        return messageDTO;
     }
 
 }
