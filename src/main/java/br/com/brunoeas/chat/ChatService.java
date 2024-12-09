@@ -40,7 +40,7 @@ public class ChatService {
 
         final MessageDTO messageDTO = MessageDTO.builder()
                 .username(user.getCode().toString())
-                .timestamp(LocalDateTime.now())
+                .timestamp(LocalDateTime.now().format(Constants.FORMATTER))
                 .text(message.getText())
                 .build();
         this.redisDataSource.list(MessageDTO.class).rpush(this.chatMessagesKey, messageDTO);
@@ -53,16 +53,27 @@ public class ChatService {
         final long total = listCommand.llen(this.chatMessagesKey);
 
         final List<MessageDTO> rawMessages = listCommand.lrange(this.chatMessagesKey, total - request.getPageSize(), -1);
-        final Set<UserDTO> users = this.redisDataSource.set(UserDTO.class).smembers(this.usersKey);
+        if (!rawMessages.isEmpty()) {
+            final Set<UserDTO> users = this.redisDataSource.set(UserDTO.class).smembers(this.usersKey);
 
-        final LinkedList<MessageDTO> messageList = rawMessages.stream()
-                .map(raw -> this.mapUserNameInDTO(raw, users))
-                .collect(Collectors.toCollection(LinkedList::new));
+            final LinkedList<MessageDTO> messageList = rawMessages.stream()
+                    .map(raw -> this.mapUserNameInDTO(raw, users))
+                    .collect(Collectors.toCollection(LinkedList::new));
 
-        return PageDTO.<MessageDTO>builder()
-                .total(total)
-                .list(messageList)
-                .build();
+            return PageDTO.<MessageDTO>builder()
+                    .total(total)
+                    .list(messageList)
+                    .build();
+        } else {
+            return PageDTO.<MessageDTO>builder()
+                    .total(total)
+                    .list(new LinkedList<>())
+                    .build();
+        }
+    }
+
+    public void deleteAllMessages() {
+        this.redisDataSource.key(String.class).del(this.chatMessagesKey);
     }
 
     private UserDTO retrieveUserOrCreateNewOne(final String username) {

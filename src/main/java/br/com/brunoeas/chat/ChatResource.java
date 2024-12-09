@@ -26,4 +26,10 @@ public class ChatResource {
         return Response.ok(this.chatService.listMessagesWithPagination(request)).build();
     }
 
+    @DELETE
+    public Response deleteAllMessages() {
+        this.chatService.deleteAllMessages();
+        return Response.ok().build();
+    }
+
 }
