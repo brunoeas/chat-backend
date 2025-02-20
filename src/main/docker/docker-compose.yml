@@ -1,7 +1,7 @@
 version: "3.9"
 services:
   chat-backend:
-    image: bruno/chat-backend:0.0.1-SNAPSHOT.1
+    image: brunoeas1/chat-backend:0.0.1-SNAPSHOT.3
     container_name: chat-backend
     ports:
       - "8081:8080"

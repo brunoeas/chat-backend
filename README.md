@@ -19,7 +19,13 @@ You can run your application in dev mode that enables live coding using:
 The application can be packaged using:
 
 ```shell script
-./mvnw package -Dquarkus.container-image.build=true
+./mvnw clean package -Dquarkus.container-image.build=true -Dquarkus.container-image.group=brunoeas1 -Dquarkus.container-image.name=chat-backend -Dquarkus.container-image.tag=<version>
+```
+
+And push:
+
+```shell script
+docker push brunoeas1/chat-backend:0.0.1-SNAPSHOT.3
 ```
 
 Run application using:
