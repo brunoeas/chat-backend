@@ -22,7 +22,7 @@ The application can be packaged using:
 ./mvnw clean package -Dquarkus.container-image.build=true -Dquarkus.container-image.group=brunoeas1 -Dquarkus.container-image.name=chat-backend -Dquarkus.container-image.tag=<version>
 ```
 
-And push:
+And push (example):
 
 ```shell script
 docker push brunoeas1/chat-backend:0.0.1-SNAPSHOT.3
