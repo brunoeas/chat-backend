@@ -16,7 +16,7 @@ You can run your application in dev mode that enables live coding using:
 
 ## Packaging and running the application
 
-The application can be packaged using:
+The application can be packaged using (example):
 
 ```shell script
 ./mvnw clean package -Dquarkus.container-image.build=true -Dquarkus.container-image.group=brunoeas1 -Dquarkus.container-image.name=chat-backend -Dquarkus.container-image.tag=<version>
